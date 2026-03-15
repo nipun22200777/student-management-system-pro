@@ -27,29 +27,29 @@ function Home({ students }: Props) {
         <p>A modern and intuitive system to manage your institution's records effortlessly.</p>
         <div className="db-status-badge">
           <strong>MongoDB Status: </strong>
-          <span className={dbStatus === 'Connected' ? 'status-connected' : 'status-disconnected'}>
-            {dbStatus}
-          </span>
+      <span className={dbStatus === 'Connected' ? 'status-connected' : 'status-disconnected'}>
+        {dbStatus}
+      </span>
+    </div>
+  </div>
+
+    <div className="dashboard-stats">
+      <div className="card stat-card">
+        <div className="stat-icon">🎓</div>
+        <div className="stat-info">
+          <h3>Total Students</h3>
+          <p className="stat-number">{totalStudents}</p>
         </div>
       </div>
-
-      <div className="dashboard-stats">
-        <div className="card stat-card">
-          <div className="stat-icon">🎓</div>
-          <div className="stat-info">
-            <h3>Total Students</h3>
-            <p className="stat-number">{totalStudents}</p>
-          </div>
-        </div>
-        <div className="card stat-card">
-          <div className="stat-icon">📚</div>
-          <div className="stat-info">
-            <h3>Active Courses</h3>
-            <p className="stat-number">{uniqueCourses}</p>
-          </div>
+      <div className="card stat-card">
+        <div className="stat-icon">📚</div>
+        <div className="stat-info">
+          <h3>Active Courses</h3>
+          <p className="stat-number">{uniqueCourses}</p>
         </div>
       </div>
     </div>
+    </div >
   );
 }
 

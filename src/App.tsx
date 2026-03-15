@@ -33,11 +33,7 @@ function App() {
         const data = await res.json();
         setStudents(data);
       }
-<<<<<<< HEAD
     } catch {
-=======
-    } catch (err) {
->>>>>>> 05a378957481b78786808b399cc5d43a236bac9b
       console.error("Failed to fetch students");
     }
   };

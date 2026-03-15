@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import studentRoutes from './routes/studentRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +34,7 @@ mongoose.connect(MONGO_URI)
 
 // Routes
 app.use('/api/students', studentRoutes);
+app.use('/api/auth', authRoutes);
 
 app.get('/api/db-status', (req, res) => {
   // Mongoose readyState: 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting

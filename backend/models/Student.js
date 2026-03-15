@@ -16,7 +16,12 @@ const studentSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: true,
+    required: true
+  },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
   }
 }, { timestamps: true, collection: 'studentsdetails' });
 

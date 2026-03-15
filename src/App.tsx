@@ -5,7 +5,10 @@ import Home from "./components/Home";
 import AddStudent from "./components/AddStudent";
 import ViewStudents from "./components/ViewStudents";
 import Contact from "./components/Contact";
+import Login from "./components/Login";
+import Register from "./components/Register";
 import Toast, { type ToastMessage } from "./components/Toast";
+import { useAuth } from "./context/AuthContext";
 import "./App.css";
 
 export interface Student {
@@ -14,24 +17,34 @@ export interface Student {
   roll: string;
   course: string;
   email: string;
+  userId: string;
 }
 
-type NewStudent = Omit<Student, "id">;
+type NewStudent = Omit<Student, "id" | "userId">;
 type StudentPayload = Student | NewStudent;
 
 function App() {
   const [students, setStudents] = useState<Student[]>([]);
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const navigate = useNavigate();
+  const { user, isLoading } = useAuth();
 
   const API_URL = "/api/students";
 
   const fetchStudents = async () => {
+    if (!user) return;
     try {
-      const res = await fetch(API_URL);
+      const res = await fetch(API_URL, {
+        headers: {
+          'Authorization': `Bearer ${user.token}`
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         setStudents(data);
+      } else if (res.status === 401) {
+         // unauthorized possibly token expired
+         console.error("Unauthorized to fetch students");
       }
     } catch {
       console.error("Failed to fetch students");
@@ -40,18 +53,22 @@ function App() {
 
   useEffect(() => {
     fetchStudents();
-  }, []);
+  }, [user]);
 
   const showToast = (message: string, type: ToastMessage["type"] = "success") => {
     setToast({ message, type });
   };
 
   const saveStudent = async (student: StudentPayload) => {
+    if (!user) return;
     try {
       if ("id" in student) {
         const res = await fetch(`${API_URL}/${student.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${user.token}`
+          },
           body: JSON.stringify(student),
         });
         if (res.ok) {
@@ -68,7 +85,10 @@ function App() {
       } else {
         const res = await fetch(API_URL, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${user.token}`
+          },
           body: JSON.stringify(student),
         });
         if (res.ok) {
@@ -87,13 +107,20 @@ function App() {
   };
 
   const deleteStudent = async (id: string) => {
+    if (!user) return;
     try {
-      const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+      const res = await fetch(`${API_URL}/${id}`, { 
+        method: "DELETE",
+        headers: {
+          "Authorization": `Bearer ${user.token}`
+        }
+      });
       if (res.ok) {
         setStudents((prev) => prev.filter((s) => s.id !== id));
         showToast("Student deleted.", "success");
       } else {
-        showToast("Failed to delete student.", "error");
+        const errData = await res.json();
+        showToast(errData.message || "Failed to delete student.", "error");
       }
     } catch {
       showToast("Network error. Is the backend running?", "error");
@@ -108,34 +135,46 @@ function App() {
     return map;
   }, [students]);
 
+  if (isLoading) {
+    return <div className="app">Loading...</div>;
+  }
+
   return (
     <div className="app">
       <Navbar />
       <div className="container">
         <Routes>
-          <Route path="/" element={<Home students={students} />} />
-          <Route path="/add" element={<AddStudent onSave={saveStudent} />} />
+          <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
+          <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
+          
+          {/* Protected Routes */}
+          <Route path="/" element={user ? <Home students={students} /> : <Navigate to="/login" />} />
+          <Route path="/add" element={user ? <AddStudent onSave={saveStudent} /> : <Navigate to="/login" />} />
           <Route
             path="/edit/:id"
             element={
-              <AddStudent
-                onSave={saveStudent}
-                studentLookup={(id) => studentById.get(id)}
-              />
+              user ? (
+                <AddStudent
+                  onSave={saveStudent}
+                  studentLookup={(id) => studentById.get(id)}
+                />
+              ) : <Navigate to="/login" />
             }
           />
           <Route
             path="/view"
             element={
-              <ViewStudents
-                students={students}
-                onDelete={deleteStudent}
-                onEdit={onEdit}
-              />
+              user ? (
+                <ViewStudents
+                  students={students}
+                  onDelete={deleteStudent}
+                  onEdit={onEdit}
+                />
+              ) : <Navigate to="/login" />
             }
           />
           <Route path="/contact" element={<Contact />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to={user ? "/" : "/login"} replace />} />
         </Routes>
       </div>
 

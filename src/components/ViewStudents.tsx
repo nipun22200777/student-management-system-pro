@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import type { Student } from "../App";
+import { useAuth } from "../context/AuthContext";
 
 interface Props {
   students: Student[];
@@ -10,6 +11,7 @@ interface Props {
 function ViewStudents({ students, onDelete, onEdit }: Props) {
   const [search, setSearch] = useState("");
   const [courseFilter, setCourseFilter] = useState("All");
+  const { user } = useAuth();
 
   const courses = useMemo(() => {
     const all = students.map((s) => s.course);
@@ -92,25 +94,36 @@ function ViewStudents({ students, onDelete, onEdit }: Props) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((s, idx) => (
-                <tr key={s.id}>
-                  <td className="text-muted">{idx + 1}</td>
-                  <td><strong>{s.name}</strong></td>
-                  <td><code className="roll-tag">{s.roll}</code></td>
-                  <td><span className="course-badge">{s.course}</span></td>
-                  <td className="text-muted">{s.email}</td>
-                  <td className="col-actions">
-                    <div className="actions">
-                      <button className="btn-secondary btn-sm" onClick={() => onEdit(s.id)}>
-                        ✏️ Edit
-                      </button>
-                      <button className="btn-danger btn-sm" onClick={() => handleDelete(s.id, s.name)}>
-                        🗑️ Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((s, idx) => {
+                const isOwner = user?._id === s.userId;
+                const isAdmin = user?.role === 'admin';
+                const canEdit = isOwner || isAdmin;
+                const canDelete = isAdmin;
+
+                return (
+                  <tr key={s.id}>
+                    <td className="text-muted">{idx + 1}</td>
+                    <td><strong>{s.name}</strong></td>
+                    <td><code className="roll-tag">{s.roll}</code></td>
+                    <td><span className="course-badge">{s.course}</span></td>
+                    <td className="text-muted">{s.email}</td>
+                    <td className="col-actions">
+                      <div className="actions">
+                        {canEdit && (
+                          <button className="btn-secondary btn-sm" onClick={() => onEdit(s.id)}>
+                            ✏️ Edit
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button className="btn-danger btn-sm" onClick={() => handleDelete(s.id, s.name)}>
+                            🗑️ Delete
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

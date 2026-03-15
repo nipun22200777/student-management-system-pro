@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import type { Student } from "../App";
 
 export interface AddStudentProps {
-  onSave: (student: Omit<Student, "id"> | Student) => void;
+  onSave: (student: Omit<Student, "id" | "userId"> | Student) => void;
   studentLookup?: (id: string) => Student | undefined;
 }
 
@@ -58,7 +58,7 @@ function AddStudent({ onSave, studentLookup }: AddStudentProps) {
     setLoading(true);
 
     const studentPayload = editingStudent
-      ? { id: editingStudent.id, name: name.trim(), roll: roll.trim(), course, email: email.trim() }
+      ? { id: editingStudent.id, name: name.trim(), roll: roll.trim(), course, email: email.trim(), userId: editingStudent.userId }
       : { name: name.trim(), roll: roll.trim(), course, email: email.trim() };
 
     await onSave(studentPayload);

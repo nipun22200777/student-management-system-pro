@@ -7,6 +7,7 @@ import ViewStudents from "./components/ViewStudents";
 import Contact from "./components/Contact";
 import Login from "./components/Login";
 import Register from "./components/Register";
+import ForgotPassword from "./components/ForgotPassword";
 import Toast, { type ToastMessage } from "./components/Toast";
 import { useAuth } from "./context/AuthContext";
 import "./App.css";
@@ -27,7 +28,7 @@ function App() {
   const [students, setStudents] = useState<Student[]>([]);
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const navigate = useNavigate();
-  const { user, isLoading } = useAuth();
+  const { user, logout, isLoading } = useAuth();
 
   const API_URL = "/api/students";
 
@@ -44,10 +45,13 @@ function App() {
         setStudents(data);
       } else if (res.status === 401) {
          // unauthorized possibly token expired
-         console.error("Unauthorized to fetch students");
+         console.error("Unauthorized to fetch students. Token may be expired.");
+         logout();
+      } else {
+        console.error("Failed to fetch students");
       }
     } catch {
-      console.error("Failed to fetch students");
+      console.error("Failed to fetch students due to network error");
     }
   };
 
@@ -78,6 +82,9 @@ function App() {
           );
           showToast("Student updated successfully.", "success");
           navigate("/view");
+        } else if (res.status === 401) {
+          logout();
+          showToast("Session expired, please log in again.", "error");
         } else {
           const errData = await res.json();
           showToast(errData.message || "Failed to update.", "error");
@@ -96,6 +103,9 @@ function App() {
           setStudents((prev) => [newStudent, ...prev]);
           showToast("Student added successfully.", "success");
           navigate("/view");
+        } else if (res.status === 401) {
+          logout();
+          showToast("Session expired, please log in again.", "error");
         } else {
           const errData = await res.json();
           showToast(errData.message || "Failed to add.", "error");
@@ -118,6 +128,9 @@ function App() {
       if (res.ok) {
         setStudents((prev) => prev.filter((s) => s.id !== id));
         showToast("Student deleted.", "success");
+      } else if (res.status === 401) {
+        logout();
+        showToast("Session expired, please log in again.", "error");
       } else {
         const errData = await res.json();
         showToast(errData.message || "Failed to delete student.", "error");
@@ -146,6 +159,7 @@ function App() {
         <Routes>
           <Route path="/login" element={!user ? <Login /> : <Navigate to="/" />} />
           <Route path="/register" element={!user ? <Register /> : <Navigate to="/" />} />
+          <Route path="/forgot-password" element={!user ? <ForgotPassword /> : <Navigate to="/" />} />
           
           {/* Protected Routes */}
           <Route path="/" element={user ? <Home students={students} /> : <Navigate to="/login" />} />

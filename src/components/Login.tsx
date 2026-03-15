@@ -54,7 +54,7 @@ function Login() {
             className="form-control"
           />
         </div>
-        <div className="form-group">
+        <div className="form-group" style={{ position: 'relative' }}>
           <label htmlFor="password">Password</label>
           <input
             type="password"
@@ -64,6 +64,9 @@ function Login() {
             required
             className="form-control"
           />
+          <div style={{ textAlign: 'right', marginTop: '5px' }}>
+            <Link to="/forgot-password" style={{ fontSize: '0.9rem', color: '#007bff', textDecoration: 'none' }}>Forgot Password?</Link>
+          </div>
         </div>
         <button type="submit" className="btn-primary" style={{ width: '100%', marginTop: '10px' }}>
           Login

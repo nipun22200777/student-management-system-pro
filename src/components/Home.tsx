@@ -25,7 +25,6 @@ function Home({ students }: Props) {
       <div className="card dashboard-header">
         <h1>Student Management Dashboard</h1>
         <p>A modern and intuitive system to manage your institution's records effortlessly.</p>
-
         <div className="db-status-badge">
           <strong>MongoDB Status: </strong>
           <span className={dbStatus === 'Connected' ? 'status-connected' : 'status-disconnected'}>

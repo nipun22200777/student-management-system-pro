@@ -2,7 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -97,33 +97,8 @@ router.get('/me', protect, async (req, res) => {
   res.status(200).json(req.user);
 });
 
-// Setup Nodemailer transporter helper
-const createTransporter = async () => {
-  // Try to use environment variables first
-  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-    return nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS.replace(/\s+/g, ''), // Automatically remove any accidental spaces
-      },
-    });
-  }
-  
-  // Fallback to Ethereal Testing Account
-  const testAccount = await nodemailer.createTestAccount();
-  return nodemailer.createTransport({
-    host: "smtp.ethereal.email",
-    port: 587,
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: testAccount.user, // generated ethereal user
-      pass: testAccount.pass, // generated ethereal password
-    },
-  });
-};
+// Initialize Resend with the API key
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // @desc    Forgot Password - Send OTP
 // @route   POST /api/auth/forgot-password
@@ -145,21 +120,20 @@ router.post('/forgot-password', async (req, res) => {
     user.resetPasswordOtpExpiry = Date.now() + 10 * 60 * 1000;
     await user.save();
 
-    // Send email
-    const transporter = await createTransporter();
-    const mailOptions = {
-      from: '"Library Admin" <admin@library.com>',
-      to: user.email,
+    // Send email using Resend API
+    const { data, error } = await resend.emails.send({
+      from: 'Acme <onboarding@resend.dev>', // Resend's free tier testing address
+      to: [user.email],
       subject: 'Password Reset OTP',
-      text: `Your OTP for password reset is: ${otp}. It is valid for 10 minutes.`,
       html: `<b>Your OTP for password reset is: <span style="color:blue">${otp}</span></b><br>It is valid for 10 minutes.`,
-    };
+    });
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Message sent: %s", info.messageId);
-    console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+    if (error) {
+      console.error("Resend API error:", error);
+      return res.status(500).json({ message: 'Failed to send automated email', error });
+    }
 
-    res.json({ message: 'OTP sent to email', previewUrl: nodemailer.getTestMessageUrl(info) });
+    res.json({ message: 'OTP sent to email', id: data.id });
   } catch (error) {
     console.error("Forgot password error:", error);
     res.status(500).json({ message: 'Server error', error: error.message });

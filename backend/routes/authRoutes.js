@@ -2,7 +2,6 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import { Resend } from 'resend';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -97,9 +96,6 @@ router.get('/me', protect, async (req, res) => {
   res.status(200).json(req.user);
 });
 
-// Initialize Resend with the API key
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 // @desc    Forgot Password - Send OTP
 // @route   POST /api/auth/forgot-password
 // @access  Public
@@ -120,20 +116,32 @@ router.post('/forgot-password', async (req, res) => {
     user.resetPasswordOtpExpiry = Date.now() + 10 * 60 * 1000;
     await user.save();
 
-    // Send email using Resend API
-    const { data, error } = await resend.emails.send({
-      from: 'Acme <onboarding@resend.dev>', // Resend's free tier testing address
-      to: [user.email],
-      subject: 'Password Reset OTP',
-      html: `<b>Your OTP for password reset is: <span style="color:blue">${otp}</span></b><br>It is valid for 10 minutes.`,
+    // Send email using EmailJS REST API
+    const emailjsPayload = {
+      service_id: process.env.EMAILJS_SERVICE_ID,
+      template_id: process.env.EMAILJS_TEMPLATE_ID,
+      user_id: process.env.EMAILJS_PUBLIC_KEY,
+      template_params: {
+        to_email: user.email,
+        otp: otp
+      }
+    };
+
+    const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(emailjsPayload)
     });
 
-    if (error) {
-      console.error("Resend API error:", error);
-      return res.status(500).json({ message: 'Failed to send automated email', error });
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("EmailJS API error:", errorText);
+      return res.status(500).json({ message: 'Failed to send automated email', error: errorText });
     }
 
-    res.json({ message: 'OTP sent to email', id: data.id });
+    res.json({ message: 'OTP sent to email successfully' });
   } catch (error) {
     console.error("Forgot password error:", error);
     res.status(500).json({ message: 'Server error', error: error.message });
